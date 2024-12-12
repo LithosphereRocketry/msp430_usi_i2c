@@ -57,7 +57,7 @@ typedef enum i2c_state_enum {
 extern i2c_state_type i2c_state;
 
 // Use this to check whether a previously scheduled I2C sequence has been fully processed.
-inline unsigned int i2c_done() {
+static inline unsigned int i2c_done() {
   return(i2c_state == I2C_IDLE);
 }
 
