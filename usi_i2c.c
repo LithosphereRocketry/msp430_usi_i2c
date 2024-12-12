@@ -25,6 +25,7 @@
 #include <msp430.h>
 #include <stdint.h>
 #include "usi_i2c.h"
+#include "msp430_compat.h"
 
 // Internal state
 static uint16_t const *i2c_sequence;
