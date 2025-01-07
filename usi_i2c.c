@@ -28,11 +28,11 @@
 #include "msp430_compat.h"
 
 // Internal state
-static uint16_t const *i2c_sequence;
-static uint16_t i2c_sequence_length;
-static uint8_t *i2c_receive_buffer;
+static uint16_t const * volatile i2c_sequence;
+static volatile uint16_t i2c_sequence_length;
+static volatile uint8_t * volatile i2c_receive_buffer;
 static uint16_t i2c_wakeup_sr_bits;
-i2c_state_type i2c_state = I2C_IDLE;
+volatile i2c_state_type i2c_state = I2C_IDLE;
 
 static inline void i2c_prepare_stop();
 static inline void i2c_prepare_data_xmit_recv();
@@ -63,11 +63,24 @@ static inline void i2c_prepare_data_xmit_recv() {
       USISRL = 0xff;            // prepare and send a dummy bit, so that SDA is high
       USICNT = (USICNT & 0xE0) | 1;
       i2c_state = I2C_START;
-    }
-    else if(*i2c_sequence == I2C_READ) {
+    } else if(*i2c_sequence == I2C_READ) {
       USICTL0 &= ~USIOE;               // SDA = input
       USICNT = (USICNT & 0xE0) | 8;    // Bit counter = 8, RX data
       i2c_state = I2C_RECEIVED_DATA;   // next state: Test data and ACK/NACK
+    } else if(*i2c_sequence == I2C_READ_N) {
+      USICTL0 &= ~USIOE;               // SDA = input
+      USICNT = (USICNT & 0xE0) | 8;    // Bit counter = 8, RX data
+      i2c_state = I2C_RECEIVED_DATA;   // next state: Test data and ACK/NACK
+      // Next time around, hit the same word again
+      i2c_sequence--;  
+    } else if(*i2c_sequence == I2C_WRITE_N) {
+      USICTL0 |= USIOE;                // SDA = output
+      USISRL = (char)(*i2c_receive_buffer);  // Load data byte
+      USICNT = (USICNT & 0xE0) | 8;    // Bit counter = 8, start TX
+      i2c_state = I2C_PREPARE_ACKNACK; // next state: prepare to receive data ACK/NACK  
+      // Next time around, hit the same word again
+      i2c_sequence--;
+      i2c_receive_buffer++;
     } else {                           // a write
       // at this point we should have a pure data byte, not a command, so (*i2c_sequence >> 8) == 0
       USICTL0 |= USIOE;                // SDA = output

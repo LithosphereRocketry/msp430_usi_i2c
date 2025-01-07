@@ -27,8 +27,10 @@
 
 #include <stdint.h>
 
-#define I2C_RESTART 	1<<8    /* repeated start */
+#define I2C_RESTART 1<<8    /* repeated start */
 #define I2C_READ		2<<8    /* read a byte */
+#define I2C_WRITE_N 3<<8    /* write bytes from buffer until length is fulfilled */
+#define I2C_READ_N  4<<8    /* read bytes from buffer until length is fulfilled */
 
 // Call this with one of the USIDIV_* constants as a usi_clock_divider parameter, which will set the clock divider used
 // for USI I2C communications. The usi_clock_source parameter should be set to one of the USISSEL* constants. Example:
@@ -54,7 +56,7 @@ typedef enum i2c_state_enum {
   I2C_PREPARE_STOP = 10,
   I2C_STOP = 12} i2c_state_type;
 
-extern i2c_state_type i2c_state;
+extern volatile i2c_state_type i2c_state;
 
 // Use this to check whether a previously scheduled I2C sequence has been fully processed.
 static inline unsigned int i2c_done() {
